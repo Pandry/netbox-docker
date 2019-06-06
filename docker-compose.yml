@@ -19,6 +19,8 @@ services:
     - /opt/netbox/nginx-config:/etc/netbox-nginx:z
     - /opt/netbox/static-files:/opt/netbox/netbox/static:z
     - /opt/netbox/media-files:/opt/netbox/netbox/media:z
+    networks:
+      netbox:
   netbox-worker:
     <<: *netbox
     depends_on:
@@ -28,13 +30,23 @@ services:
     - /opt/netbox/netbox/manage.py
     command:
     - rqworker
+    networks:
+      netbox:
   nginx:
     command: nginx -c /etc/netbox-nginx/nginx.conf
     image: nginx:1.15-alpine
     depends_on:
     - netbox
-    ports:
-    - 127.0.0.1:45814:8080
+    expose:
+    - 8080
+    # https://docs.docker.com/compose/networking/#use-a-pre-existing-network
+    networks:
+      netbox:
+      nginx:
+        # https://docs.docker.com/compose/compose-file/#aliases
+        aliases:
+        - netbox
+
     volumes:
     - /opt/netbox/static-files:/opt/netbox/netbox/static:ro
     - /opt/netbox/nginx-config:/etc/netbox-nginx/:ro
@@ -43,6 +55,8 @@ services:
     env_file: env/postgres.env
     volumes:
     - /opt/netbox/postgres-data:/var/lib/postgresql/data
+    networks:
+      netbox:
   redis:
     image: redis:4-alpine
     command:
@@ -52,3 +66,11 @@ services:
     env_file: env/redis.env
     volumes:
     - /opt/netbox/redis-data:/data
+    networks:
+      netbox:
+
+networks:
+  nginx:
+    external:
+      name: nginx_net
+  netbox:
